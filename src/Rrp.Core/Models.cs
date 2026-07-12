@@ -1,0 +1,15 @@
+namespace Rrp.Core;
+public sealed record RrpWorkflow(string ApiVersion,string Kind,WorkflowMetadata Metadata,WorkflowRequirements Requires,IReadOnlyDictionary<string,WorkflowParameter> Parameters,IReadOnlyList<WorkflowStep> Steps);
+public sealed record WorkflowMetadata(string Id,string Name,DateTimeOffset CreatedAt);
+public sealed record WorkflowRequirements(string Protocol,IReadOnlyList<string> All,IReadOnlyList<string>? Any=null);
+public sealed record WorkflowParameter(string Type,bool Required=true,string? Description=null);
+public sealed record WorkflowStep(string Id,string Action,SelectorTarget? Target,IReadOnlyDictionary<string,object?>? Input,IReadOnlyList<WorkflowAssertion>? Preconditions,IReadOnlyList<WorkflowAssertion>? Postconditions,ApprovalRequirement? Approval=null,int TimeoutMs=10000);
+public sealed record SelectorTarget(IReadOnlyList<SelectorCandidate> Candidates,string Cardinality="one");
+public sealed record SelectorCandidate(string Strategy,string? Value=null,string? Role=null,string? Name=null,int Weight=0);
+public sealed record WorkflowAssertion(string Assertion,SelectorTarget? Target=null,string? Value=null);
+public sealed record ApprovalRequirement(string Class,string Timing="before");
+public sealed record RuntimeCapabilities(string Protocol,string RuntimeVersion,IReadOnlySet<string> Features);
+public sealed record ValidationIssue(string Code,string Message,string? StepId=null);
+public sealed record ValidationResult(bool Valid,IReadOnlyList<ValidationIssue> Issues);
+public sealed record ReplayPlan(bool Runnable,IReadOnlyList<ValidationIssue> Issues,IReadOnlyList<PlannedStep> Steps);
+public sealed record PlannedStep(string Id,string Action,bool RequiresApproval,int TimeoutMs);

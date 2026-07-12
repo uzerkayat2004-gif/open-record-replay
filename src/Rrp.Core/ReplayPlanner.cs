@@ -1,0 +1,2 @@
+namespace Rrp.Core;
+public sealed class ReplayPlanner(WorkflowValidator validator){public ReplayPlan Plan(RrpWorkflow w,RuntimeCapabilities c){var issues=validator.Validate(w).Issues.ToList();if(w.Requires.Protocol!=c.Protocol)issues.Add(new("capability_mismatch","Protocol mismatch."));foreach(var f in w.Requires.All.Where(f=>!c.Features.Contains(f)))issues.Add(new("capability_mismatch",$"Missing capability '{f}'."));var steps=w.Steps.Select(s=>new PlannedStep(s.Id,s.Action,s.Approval is {Class:not "read"},s.TimeoutMs)).ToArray();return new(issues.Count==0,issues,steps);}}
