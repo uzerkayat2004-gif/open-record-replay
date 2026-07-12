@@ -62,22 +62,22 @@ public sealed class UiaInspector : IDisposable
         );
     }
 
-    private static string? SafeString(FlaUI.Core.AutomationProperty<string> prop)
+    internal static string? SafeString(FlaUI.Core.AutomationProperty<string> prop)
     {
         try { return prop.ValueOrDefault; } catch { return null; }
     }
 
-    private static string SafeControlType(AutomationElement el)
+    internal static string SafeControlType(AutomationElement el)
     {
         try { return el.Properties.ControlType.ValueOrDefault.ToString(); } catch { return "Unknown"; }
     }
 
-    private static AutomationElement? SafeParent(AutomationElement el)
+    internal static AutomationElement? SafeParent(AutomationElement el)
     {
         try { return el.Parent; } catch { return null; }
     }
 
-    private static RectDto SafeBounds(AutomationElement el)
+    internal static RectDto SafeBounds(AutomationElement el)
     {
         try 
         { 
@@ -90,7 +90,7 @@ public sealed class UiaInspector : IDisposable
         }
     }
 
-    private static bool SafeBool(FlaUI.Core.AutomationProperty<bool> prop, bool defaultValue = false)
+    internal static bool SafeBool(FlaUI.Core.AutomationProperty<bool> prop, bool defaultValue = false)
     {
         try { return prop.ValueOrDefault; } catch { return defaultValue; }
     }
@@ -107,7 +107,16 @@ public sealed class SelectorResolver : IDisposable
         var desktop = _automation.GetDesktop();
         var scored = new List<(AutomationElement Element, int Score)>();
         AutomationElement[] elements;
-        try { elements = desktop.FindAllDescendants(); } catch { return (null, 0, false); }
+        try 
+        { 
+            elements = desktop.FindAllDescendants(); 
+        } 
+        catch (Exception ex)
+        { 
+            Console.Error.WriteLine($"[SelectorResolver] FindAllDescendants exception: {ex}");
+            return (null, 0, false); 
+        }
+
         foreach (var element in elements.Take(5000))
         {
             try
@@ -117,21 +126,39 @@ public sealed class SelectorResolver : IDisposable
                 {
                     var match = candidate.Strategy switch
                     {
-                        "uia.automationId" => string.Equals(element.AutomationId, candidate.Value, StringComparison.Ordinal),
-                        "uia.name" => string.Equals(element.Name, candidate.Value, StringComparison.OrdinalIgnoreCase),
-                        "uia.controlType" => string.Equals(element.ControlType.ToString(), candidate.Value, StringComparison.OrdinalIgnoreCase),
-                        "uia.className" => string.Equals(element.ClassName, candidate.Value, StringComparison.Ordinal),
+                        "uia.automationId" => string.Equals(UiaInspector.SafeString(element.Properties.AutomationId), candidate.Value, StringComparison.Ordinal),
+                        "uia.name" => string.Equals(UiaInspector.SafeString(element.Properties.Name), candidate.Value, StringComparison.OrdinalIgnoreCase),
+                        "uia.controlType" => string.Equals(UiaInspector.SafeControlType(element), candidate.Value, StringComparison.OrdinalIgnoreCase),
+                        "uia.className" => string.Equals(UiaInspector.SafeString(element.Properties.ClassName), candidate.Value, StringComparison.Ordinal),
                         _ => false
                     };
                     if (match) score += Math.Max(1, candidate.Weight);
                 }
-                if (!element.IsEnabled) score -= 15;
-                if (element.IsOffscreen) score -= 10;
+                if (!UiaInspector.SafeBool(element.Properties.IsEnabled, true)) score -= 15;
+                if (UiaInspector.SafeBool(element.Properties.IsOffscreen, false)) score -= 10;
                 if (score > 0) scored.Add((element, score));
             }
-            catch { }
+            catch (Exception)
+            {
+                // Ignore individual element inspection errors
+            }
         }
         var ordered = scored.OrderByDescending(x => x.Score).ToArray();
+
+        if (ordered.Length > 0)
+        {
+            Console.Error.WriteLine($"[SelectorResolver] Top matches found (threshold: 20):");
+            for (var i = 0; i < Math.Min(5, ordered.Length); i++)
+            {
+                var el = ordered[i].Element;
+                Console.Error.WriteLine($" - [{i+1}] Score: {ordered[i].Score} | Name: {UiaInspector.SafeString(el.Properties.Name)} | ControlType: {UiaInspector.SafeControlType(el)} | AutomationId: {UiaInspector.SafeString(el.Properties.AutomationId)}");
+            }
+        }
+        else
+        {
+            Console.Error.WriteLine($"[SelectorResolver] No elements matched any criteria.");
+        }
+
         if (ordered.Length == 0 || ordered[0].Score < 20) return (null, ordered.FirstOrDefault().Score, false);
         return (ordered[0].Element, ordered[0].Score, ordered.Length > 1 && ordered[0].Score - ordered[1].Score < 10);
     }
