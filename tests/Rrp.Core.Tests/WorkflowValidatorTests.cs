@@ -1,4 +1,5 @@
 using Rrp.Core;
+using Xunit;
 
 namespace Rrp.Core.Tests;
 

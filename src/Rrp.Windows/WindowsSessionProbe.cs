@@ -6,7 +6,7 @@ namespace Rrp.Windows;
 
 public sealed record ActiveWindowInfo(nint Handle, int ProcessId, string ProcessName, string Title);
 
-public sealed partial class WindowsSessionProbe
+public sealed class WindowsSessionProbe
 {
     public ActiveWindowInfo? GetActiveWindow()
     {
@@ -21,10 +21,7 @@ public sealed partial class WindowsSessionProbe
         return new(handle, (int)processId, processName, title.ToString());
     }
 
-    [LibraryImport("user32.dll")]
-    private static partial nint GetForegroundWindow();
-    [LibraryImport("user32.dll")]
-    private static partial uint GetWindowThreadProcessId(nint hWnd, out uint processId);
-    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
-    private static partial int GetWindowText(nint hWnd, StringBuilder text, int count);
+    [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hWnd, out uint processId);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(nint hWnd, StringBuilder text, int count);
 }

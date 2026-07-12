@@ -1,27 +1,32 @@
-name: ci
+name: Windows CI
+
 on:
   push:
-    branches: [main]
+    branches: [main, complete-beta]
   pull_request:
+
 permissions:
   contents: read
+
 jobs:
-  build-test:
+  build-test-publish:
     runs-on: windows-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
       - name: Restore
-        run: dotnet restore OpenRecordReplay.sln
-      - name: Build
-        run: dotnet build OpenRecordReplay.sln --configuration Release --no-restore
-      - name: Test
-        run: dotnet test OpenRecordReplay.sln --configuration Release --no-build --logger "trx;LogFileName=tests.trx"
-      - name: Publish MCP server
+        run: dotnet restore src/Rrp.Mcp/Rrp.Mcp.csproj
+      - name: Build complete runtime
+        run: dotnet build src/Rrp.Mcp/Rrp.Mcp.csproj -c Release --no-restore
+      - name: Test portable core
+        run: dotnet test tests/Rrp.Core.Tests/Rrp.Core.Tests.csproj -c Release
+      - name: Publish Windows x64 runtime
         run: dotnet publish src/Rrp.Mcp/Rrp.Mcp.csproj -c Release -r win-x64 --self-contained true -o artifacts/rrp-mcp
       - uses: actions/upload-artifact@v4
         with:
-          name: rrp-mcp-win-x64
+          name: open-record-replay-win-x64
           path: artifacts/rrp-mcp
+          if-no-files-found: error
