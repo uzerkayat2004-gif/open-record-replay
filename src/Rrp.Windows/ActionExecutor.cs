@@ -25,7 +25,7 @@ public sealed class ActionExecutor : IDisposable
         }
         if (step.Action.Contains("key", StringComparison.OrdinalIgnoreCase))
         {
-            var key = step.Input is not null && step.Input.TryGetValue("virtualKey", out var raw) ? Convert.ToUInt16(raw) : throw new InvalidOperationException("virtualKey missing.");
+            var key = step.Input is not null && step.Input.TryGetValue("virtualKey", out var raw) ? GetVirtualKey(raw) : throw new InvalidOperationException("virtualKey missing.");
             element.Focus();
             var inputs = new[] { VirtualKey(key, 0), VirtualKey(key, NativeMethods.KEYEVENTF_KEYUP) };
             if (NativeMethods.SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<NativeMethods.INPUT>()) != (uint)inputs.Length) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
@@ -34,13 +34,35 @@ public sealed class ActionExecutor : IDisposable
 
         if (step.Action.Contains("type", StringComparison.OrdinalIgnoreCase) || step.Action.Contains("set", StringComparison.OrdinalIgnoreCase))
         {
-            var value = step.Input is not null && step.Input.TryGetValue("text", out var text) ? Convert.ToString(text) : null;
+            var value = step.Input is not null && step.Input.TryGetValue("text", out var text) ? GetStringValue(text) : null;
             if (value is null) throw new InvalidOperationException("Text input missing.");
             if (element.Patterns.Value.IsSupported) element.Patterns.Value.Pattern.SetValue(value);
             else { element.Focus(); TypeUnicode(value); }
             return Task.CompletedTask;
         }
         throw new NotSupportedException($"Unsupported action {step.Action}");
+    }
+
+    private static ushort GetVirtualKey(object? raw)
+    {
+        if (raw is null) return 0;
+        if (raw is System.Text.Json.JsonElement je)
+        {
+            if (je.ValueKind == System.Text.Json.JsonValueKind.Number) return je.GetUInt16();
+            if (je.ValueKind == System.Text.Json.JsonValueKind.String && ushort.TryParse(je.GetString(), out var val)) return val;
+        }
+        return Convert.ToUInt16(raw);
+    }
+
+    private static string? GetStringValue(object? raw)
+    {
+        if (raw is null) return null;
+        if (raw is System.Text.Json.JsonElement je)
+        {
+            if (je.ValueKind == System.Text.Json.JsonValueKind.String) return je.GetString();
+            return je.GetRawText();
+        }
+        return Convert.ToString(raw);
     }
 
     private static void Click(System.Drawing.Rectangle b)
