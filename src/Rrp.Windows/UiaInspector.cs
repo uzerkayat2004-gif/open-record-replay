@@ -159,7 +159,7 @@ public sealed class SelectorResolver : IDisposable
             Console.Error.WriteLine($"[SelectorResolver] No elements matched any criteria.");
         }
 
-        if (ordered.Length == 0 || ordered[0].Score < 20) return (null, ordered.FirstOrDefault().Score, false);
+        if (ordered.Length == 0 || ordered[0].Score < 15) return (null, ordered.FirstOrDefault().Score, false);
         return (ordered[0].Element, ordered[0].Score, ordered.Length > 1 && ordered[0].Score - ordered[1].Score < 10);
     }
 
