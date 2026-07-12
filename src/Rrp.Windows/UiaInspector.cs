@@ -12,7 +12,7 @@ public sealed class UiaInspector : IDisposable
 
     public ElementSnapshot? InspectFocused()
     {
-        try { var element = _automation.FocusedElement(); return element is null ? null : Snapshot(element); } catch { return null; }
+        try { var element = _automation.FocusedElement(); return element is null ? null : Snapshot(element); } catch (Exception ex) { Console.Error.WriteLine($"[UiaInspector] InspectFocused error: {ex}"); return null; }
     }
 
     public ElementSnapshot? InspectAt(PointDto point)
@@ -23,23 +23,76 @@ public sealed class UiaInspector : IDisposable
             if (element is null) return null;
             return Snapshot(element);
         }
-        catch { return null; }
+        catch (Exception ex) { Console.Error.WriteLine($"[UiaInspector] InspectAt error: {ex}"); return null; }
     }
 
     internal static ElementSnapshot Snapshot(AutomationElement element)
     {
-        var processId = element.Properties.ProcessId.ValueOrDefault;
+        var processId = 0;
+        try { processId = element.Properties.ProcessId.ValueOrDefault; } catch { }
         var process = "unknown";
-        try { process = Process.GetProcessById(processId).ProcessName; } catch { }
+        try { if (processId > 0) process = Process.GetProcessById(processId).ProcessName; } catch { }
+        
         var ancestors = new List<ElementAncestor>();
-        var parent = element.Parent;
-        for (var i = 0; i < 4 && parent is not null; i++, parent = parent.Parent)
-            ancestors.Add(new(parent.AutomationId, parent.Name, parent.ControlType.ToString(), parent.ClassName));
-        var b = element.BoundingRectangle;
-        return new(processId, process, ancestors.FirstOrDefault()?.Name ?? "", element.AutomationId, element.Name,
-            element.ControlType.ToString(), element.ClassName, element.FrameworkType.ToString(),
-            new(b.X, b.Y, b.Width, b.Height), element.IsEnabled, element.IsOffscreen,
-            element.Properties.IsPassword.ValueOrDefault, ancestors);
+        var parent = SafeParent(element);
+        for (var i = 0; i < 4 && parent is not null; i++, parent = SafeParent(parent))
+        {
+            ancestors.Add(new(
+                SafeString(parent.Properties.AutomationId), 
+                SafeString(parent.Properties.Name), 
+                SafeControlType(parent), 
+                SafeString(parent.Properties.ClassName)
+            ));
+        }
+
+        return new(
+            processId, 
+            process, 
+            ancestors.FirstOrDefault()?.Name ?? "", 
+            SafeString(element.Properties.AutomationId), 
+            SafeString(element.Properties.Name),
+            SafeControlType(element), 
+            SafeString(element.Properties.ClassName), 
+            SafeString(element.Properties.FrameworkId) ?? "Unknown",
+            SafeBounds(element), 
+            SafeBool(element.Properties.IsEnabled), 
+            SafeBool(element.Properties.IsOffscreen),
+            SafeBool(element.Properties.IsPassword), 
+            ancestors
+        );
+    }
+
+    private static string? SafeString(FlaUI.Core.AutomationProperty<string> prop)
+    {
+        try { return prop.ValueOrDefault; } catch { return null; }
+    }
+
+    private static string SafeControlType(AutomationElement el)
+    {
+        try { return el.Properties.ControlType.ValueOrDefault.ToString(); } catch { return "Unknown"; }
+    }
+
+    private static AutomationElement? SafeParent(AutomationElement el)
+    {
+        try { return el.Parent; } catch { return null; }
+    }
+
+    private static RectDto SafeBounds(AutomationElement el)
+    {
+        try 
+        { 
+            var b = el.Properties.BoundingRectangle.ValueOrDefault; 
+            return new RectDto(b.X, b.Y, b.Width, b.Height);
+        } 
+        catch 
+        { 
+            return new RectDto(0, 0, 0, 0); 
+        }
+    }
+
+    private static bool SafeBool(FlaUI.Core.AutomationProperty<bool> prop, bool defaultValue = false)
+    {
+        try { return prop.ValueOrDefault; } catch { return defaultValue; }
     }
 
     public void Dispose() => _automation.Dispose();
