@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rrp.dev/schemas/workflow-v1.json",
+  "title": "RRP Workflow",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "requires", "parameters", "steps"],
+  "properties": {
+    "apiVersion": {"const": "rrp.dev/v1"},
+    "kind": {"const": "Workflow"},
+    "metadata": {"type": "object", "required": ["id", "name", "createdAt"], "properties": {"id": {"type": "string", "minLength": 1}, "name": {"type": "string", "minLength": 1}, "createdAt": {"type": "string", "format": "date-time"}}},
+    "requires": {"type": "object", "required": ["protocol", "all"], "properties": {"protocol": {"const": "rrp/1.0"}, "all": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}}},
+    "parameters": {"type": "object"},
+    "steps": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["id", "action", "timeoutMs"], "properties": {"id": {"type": "string"}, "action": {"type": "string"}, "target": {"type": ["object", "null"]}, "input": {"type": ["object", "null"]}, "preconditions": {"type": ["array", "null"]}, "postconditions": {"type": ["array", "null"]}, "approval": {"type": ["object", "null"]}, "timeoutMs": {"type": "integer", "minimum": 1, "maximum": 300000}}}}
+  }
+}
