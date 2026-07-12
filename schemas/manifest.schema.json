@@ -3,11 +3,66 @@
   "$id": "https://rrp.dev/schemas/manifest-v1.json",
   "title": "RRP Runtime Manifest",
   "type": "object",
-  "required": ["manifestVersion", "protocol", "runtime", "capabilities"],
+  "required": [
+    "manifestVersion",
+    "protocol",
+    "runtime",
+    "capabilities"
+  ],
   "properties": {
-    "manifestVersion": {"const": "1.0"},
-    "protocol": {"type": "object", "required": ["name", "versions"], "properties": {"name": {"const": "rrp"}, "versions": {"type": "array", "items": {"type": "string"}}}},
-    "runtime": {"type": "object", "required": ["name", "version", "platforms"], "properties": {"name": {"type": "string"}, "version": {"type": "string"}, "platforms": {"type": "array", "items": {"enum": ["windows", "linux", "darwin"]}}}},
-    "capabilities": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+    "manifestVersion": {
+      "const": "1.0"
+    },
+    "protocol": {
+      "type": "object",
+      "required": [
+        "name",
+        "versions"
+      ],
+      "properties": {
+        "name": {
+          "const": "rrp"
+        },
+        "versions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "required": [
+        "name",
+        "version",
+        "platforms"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "platforms": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "windows",
+              "linux",
+              "darwin"
+            ]
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
   }
 }
