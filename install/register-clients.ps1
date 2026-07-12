@@ -1,12 +1,12 @@
 param([string]$InstallDir="$env:LOCALAPPDATA\OpenRecordReplay")
 $ErrorActionPreference='Stop'
 $exe=(Join-Path $InstallDir 'bin\Rrp.Mcp.exe').Replace('\','\\')
-$home=(Join-Path $InstallDir 'data').Replace('\','\\')
+$rrpHome=(Join-Path $InstallDir 'data').Replace('\','\\')
 $out=Join-Path $InstallDir 'client-configs';New-Item -ItemType Directory -Force -Path $out|Out-Null
 @"
 [mcp_servers.rrp]
 command = "$exe"
-env = { RRP_HOME = "$home" }
+env = { RRP_HOME = "$rrpHome" }
 startup_timeout_sec = 20
 tool_timeout_sec = 300
 "@|Set-Content (Join-Path $out 'codex.toml')
@@ -16,7 +16,7 @@ tool_timeout_sec = 300
     "rrp": {
       "type": "stdio",
       "command": "$exe",
-      "env": { "RRP_HOME": "$home" }
+      "env": { "RRP_HOME": "$rrpHome" }
     }
   }
 }
@@ -27,7 +27,7 @@ tool_timeout_sec = 300
     "rrp": {
       "command": "$exe",
       "args": [],
-      "env": { "RRP_HOME": "$home" }
+      "env": { "RRP_HOME": "$rrpHome" }
     }
   }
 }
